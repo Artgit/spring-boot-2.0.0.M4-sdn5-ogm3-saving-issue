@@ -8,9 +8,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -34,8 +32,6 @@ import com.decisionwanted.domain.model.decision.characteristic.value.history.His
 import com.decisionwanted.domain.model.user.User;
 import com.decisionwanted.domain.service.data.DataGenerator;
 
-import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
-
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = { TestApplication.class })
 public class DecisionCharacteristicIT {
@@ -56,7 +52,7 @@ public class DecisionCharacteristicIT {
 
 	@Autowired
 	private HistoryValueDao historyValueDao;
-	
+
 	@Autowired
 	private DataGenerator dataGenerator;
 
@@ -64,19 +60,13 @@ public class DecisionCharacteristicIT {
 	public void setUp() {
 		dataGenerator.cleanDb();
 	}
-	
+
 	@Test
 	public void testUpdateValue() {
-		
-        final Set<Class<?>> allClasses = new HashSet<>();
-        new FastClasspathScanner("com.decisionwanted.domain.configuration").matchAllClasses(allClasses::add).strictWhitelist().scan();
-
-        System.out.println("!!!!!: " + allClasses);
 
 		User user1 = userDao.create("test1", "test1", "test1@test.com", null, null, null);
 		User user2 = userDao.create("test2", "test2", "test2@test.com", null, null, null);
 		User user3 = userDao.create("test3", "test3", "test3@test.com", null, null, null);
-		User user4 = userDao.create("test4", "test4", "test4@test.com", null, null, null);
 
 		final Decision databaseDecision = decisionDao.create("Database", "How to choose proper database type", null,
 				false, null, user1);
