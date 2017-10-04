@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>2.0.0.M4</version>
+	</parent>
+
+	<groupId>com.decisionwanted</groupId>
+	<artifactId>decisionwanted</artifactId>
+	<version>0.0.1</version>
+	<packaging>pom</packaging>
+
+	<name>DecisionWanted</name>
+
+	<properties>
+		<java.source.version>1.8</java.source.version>
+		<java.target.version>1.8</java.target.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<file.encoding>UTF-8</file.encoding>
+
+		<neo4j.version>3.2.5</neo4j.version>
+		<mongo.version>3.4.6</mongo.version>
+		<es.version>5.5.2</es.version>
+
+		<jta.version>1.1</jta.version>
+		<cdi-api.version>2.0-EDR1</cdi-api.version>
+		<commons-lang3.version>3.4</commons-lang3.version>
+		<commons-validator.version>1.5.0</commons-validator.version>
+		<commons-io.version>2.4</commons-io.version>
+		<commons-compress.version>1.14</commons-compress.version>
+
+		<docker-maven-plugin.version>0.22.1</docker-maven-plugin.version>
+	</properties>
+
+	<repositories>
+		<repository>
+			<id>spring-milestones</id>
+			<name>Spring Milestones</name>
+			<url>http://repo.spring.io/milestone</url>
+		</repository>
+		<repository>
+			<id>neo4j-release-repository</id>
+			<name>Neo4j Maven 2 release repository</name>
+			<url>http://m2.neo4j.org/content/repositories/releases</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>spring-libs-milestone</id>
+			<name>Spring Milestones</name>
+			<url>https://repo.spring.io/libs-milestone</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+
+	<pluginRepositories>
+		<pluginRepository>
+			<id>spring-milestones</id>
+			<url>http://repo.spring.io/milestone</url>
+		</pluginRepository>
+	</pluginRepositories>
+
+	<profiles>
+
+		<profile>
+			<id>test</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<properties>
+				<neo4j.http.port>7475</neo4j.http.port>
+				<neo4j.bolt.port>7688</neo4j.bolt.port>
+				<neo4j.server.database.uri>bolt://localhost:${neo4j.bolt.port}</neo4j.server.database.uri>
+				<neo4j.username>neo4j</neo4j.username>
+				<neo4j.password>neo4j1</neo4j.password>
+
+				<mongodb.database>decision_wanted_test</mongodb.database>
+				<mongodb.host>localhost</mongodb.host>
+				<mongodb.port>27018</mongodb.port>
+				<mongodb.username>admin</mongodb.username>
+				<mongodb.password>DPlOCLEusE</mongodb.password>
+				<mongodb.authentication-database>admin</mongodb.authentication-database>
+
+				<elasticsearch.http.port>9250</elasticsearch.http.port>
+				<elasticsearch.transport.port>9350</elasticsearch.transport.port>
+
+				<download.folder.path>${java.io.tmpdir}</download.folder.path>
+			</properties>
+		</profile>
+
+	</profiles>
+
+	<build>
+
+		<pluginManagement>
+			<plugins>
+
+				<plugin>
+					<groupId>io.fabric8</groupId>
+					<artifactId>docker-maven-plugin</artifactId>
+					<version>${docker-maven-plugin.version}</version>
+
+					<configuration>
+						<showLogs>true</showLogs>
+
+						<images>
+
+							<image>
+								<name>neo4j:${neo4j.version}</name>
+								<alias>neo4j-database</alias>
+								<run>
+									<dependsOn>
+										<container>elasticsearch</container>
+									</dependsOn>
+									<ports>
+										<port>${neo4j.http.port}:7474</port>
+										<port>${neo4j.bolt.port}:7687</port>
+									</ports>
+									<env>
+										<NEO4J_AUTH>${neo4j.username}/${neo4j.password}</NEO4J_AUTH>
+										<NEO4J_dbms_memory_pagecache_size>2G</NEO4J_dbms_memory_pagecache_size>
+										<NEO4J_dbms_memory_heap_maxSize>2G</NEO4J_dbms_memory_heap_maxSize>
+									</env>
+									<wait>
+										<http>
+											<url>http://${docker.host.address}:${neo4j.http.port}/browser</url>
+										</http>
+										<time>60000</time>
+									</wait>
+								</run>
+							</image>
+
+						</images>
+					</configuration>
+
+					<executions>
+						<execution>
+							<id>prepare-containers</id>
+							<phase>pre-integration-test</phase>
+							<goals>
+								<goal>start</goal>
+							</goals>
+						</execution>
+						<execution>
+							<id>remove-containers</id>
+							<phase>post-integration-test</phase>
+							<goals>
+								<goal>stop</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+
+			</plugins>
+		</pluginManagement>
+
+		<plugins>
+			<plugin>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>${jacoco.agent.argLine}</argLine>
+					<argLine>-Dfile.encoding=UTF-8</argLine>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<dependencies>
+
+		<!-- Jackson -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-annotations</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency>
+
+		<!-- Spring -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-beans</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-aop</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-aspects</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-expression</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-tx</artifactId>
+		</dependency>
+
+		<!-- Spring boot -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-autoconfigure</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-logging</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.enterprise</groupId>
+			<artifactId>cdi-api</artifactId>
+			<version>${cdi-api.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.transaction</groupId>
+			<artifactId>jta</artifactId>
+			<version>${jta.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>commons-validator</groupId>
+			<artifactId>commons-validator</artifactId>
+			<version>${commons-validator.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>${commons-io.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-compress</artifactId>
+			<version>${commons-compress.version}</version>
+		</dependency>
+
+		<!-- jUnit -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+	</dependencies>
+
+	<modules>
+		<module>domain</module>
+	</modules>
+
+</project>
